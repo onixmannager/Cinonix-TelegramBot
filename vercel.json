@@ -8,8 +8,16 @@
   ],
   "routes": [
     {
-      "src": "/webhook",
-      "dest": "/bot.py"
+      "src": "/api/webhook",
+      "dest": "bot.py"
+    },
+    {
+      "src": "/set-webhook",
+      "dest": "bot.py"
     }
-  ]
+  ],
+  "env": {
+    "BOT_TOKEN": "TU_TOKEN_DE_TELEGRAM",
+    "WEBHOOK_URL": "https://tu-proyecto.vercel.app"
+  }
 }
