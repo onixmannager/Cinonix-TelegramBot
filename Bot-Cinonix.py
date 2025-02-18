@@ -1,6 +1,10 @@
 import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+
+app = FastAPI()
 
 # Configuración básica de logging
 logging.basicConfig(
@@ -17,52 +21,9 @@ RESPUESTAS = {
         "🔗 **Compra ahora**: [Clic aquí](https://cinonix.vercel.app/)\n\n"
         "📌 **Desde Telegram**: Usa el botón de acceso en la web."
     ),
-    
-    ('cripto', 'criptomonedas', 'bitcoin'): (
-        "🪙 **Aceptamos pagos en criptomonedas**:\n\n"
-        "• Bitcoin (BTC)\n"
-        "• Ethereum (ETH)\n"
-        "• Litecoin (LTC)\n\n"
-        "El monto a pagar es **19.99 €**, convertido a la cripto en el momento del pago.\n\n"
-        "🔗 **Paga aquí**: [Clic aquí](https://cinonix.vercel.app/)"
-    ),
-    
-    ('link', 'pagina', 'web', 'landing'): (
-        "🌍 **Nuestra página oficial**:\n"
-        "🔗 [Cinonix](https://cinonix.vercel.app/)\n\n"
-        "📲 **Desde ahí puedes**:\n"
-        "• Realizar el pago\n"
-        "• Descargar la app\n"
-        "• Acceder desde Telegram\n"
-        "• Ver tutoriales\n"
-        "• Contactar soporte"
-    ),
-    
-    ('problema', 'error', 'fallo', 'soporte'): (
-        "🚨 **¿Tienes problemas?**\n\n"
-        "1️⃣ Revisa tu conexión a Internet.\n"
-        "2️⃣ Borra la caché de tu navegador.\n"
-        "3️⃣ Prueba en modo incógnito.\n\n"
-        "📩 **Soporte técnico**: soporte@cinonix.com"
-    ),
-    
-    ('acceso', 'login', 'entrar'): (
-        "🔑 **Cómo acceder**:\n\n"
-        "1️⃣ Completa el pago.\n"
-        "2️⃣ Recibirás un email de confirmación.\n"
-        "3️⃣ Sigue las instrucciones del email.\n"
-        "4️⃣ Accede desde **Telegram** o la **app**.\n\n"
-        "🔗 **Ir a la web**: [Cinonix](https://cinonix.vercel.app/)"
-    ),
-    
-    ('refund', 'reembolso', 'devolución'): (
-        "🔙 **Política de reembolsos**:\n\n"
-        "• Devoluciones dentro de los primeros **3 días**.\n"
-        "• Contactar a **soporte@cinonix.com**.\n"
-        "• El proceso tarda **24-48 horas**.\n"
-        "• **Solo válido para la primera compra**."
-    )
+    # ... tus otras respuestas
 }
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 ¡Hola! Soy el asistente de **Cinonix** 🎬\n\n"
@@ -76,20 +37,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🛒 **Compra aquí**: [Clic aquí](https://cinonix.vercel.app/)"
     )
 
-async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "🔍 **Comandos disponibles**:\n"
-        "/start - Iniciar el bot\n"
-        "/help - Ver esta ayuda\n\n"
-        "ℹ️ **Puedes preguntar sobre**:\n"
-        "✔️ Formas de pago (cripto/€)\n"
-        "✔️ Problemas técnicos\n"
-        "✔️ Acceso al servicio\n"
-        "✔️ Política de reembolsos\n"
-        "✔️ Enlace a la web oficial"
-    )
-
-# Manejar mensajes
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.lower()
     response = None
@@ -104,24 +51,24 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await update.message.reply_text(response)
 
-# Manejar errores
-async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logging.error(f'Update {update} caused error {context.error}')
+# Webhook handler
+@app.post("/webhook")
+async def webhook(request: Request):
+    json_body = await request.json()
+    update = Update.de_json(json_body, application.bot)
+    await application.process_update(update)
+    return JSONResponse(content={"status": "ok"})
 
 # Configurar el bot
 def main():
-    application = Application.builder().token('7853341824:AAEyF41qfBAJnafm_8jI6U3ZPblmg3kZAOs').build()  # Reemplazar con tu token
-    
+    global application
+    application = Application.builder().token('YOUR_BOT_TOKEN').build()  # Reemplazar con tu token
     # Handlers
     application.add_handler(CommandHandler('start', start))
-    application.add_handler(CommandHandler('help', help))
     application.add_handler(MessageHandler(filters.TEXT, handle_message))
     
-    # Error handler
-    application.add_error_handler(error)
-    
-    # Iniciar bot
-    application.run_polling()
+    # Iniciar el bot de Telegram
+    application.run_polling(drop_pending_updates=True, allowed_updates=Update.ALL_TYPES)
 
 if __name__ == '__main__':
     main()
